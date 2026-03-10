@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+
+{% block title %}Список задач{% endblock %}
+
+{% block extra_style %}
+.task-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.task-panel {
+    background: #1a1a2e;
+    border: 1px solid #00ff8844;
+    border-radius: 8px;
+    box-shadow: 0 0 30px #00ff8822;
+    overflow: hidden;
+    position: relative;
+}
+
+.task-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00ff88, transparent);
+    animation: scan 3s linear infinite;
+}
+
+@keyframes scan {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(100%); }
+}
+
+.task-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #00ff8833;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.task-title {
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    color: #00ff88;
+    text-shadow: 0 0 15px #00ff8866;
+}
+
+.task-form {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #00ff8833;
+    display: flex;
+    gap: 1rem;
+}
+
+.task-input {
+    flex: 1;
+    padding: 0.8rem 1rem;
+    background: #0a0a0f;
+    border: 1px solid #00ff8844;
+    border-radius: 4px;
+    color: #00ff88;
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.task-input:focus {
+    outline: none;
+    border-color: #00ff88;
+    box-shadow: 0 0 15px #00ff8844;
+}
+
+.task-input::placeholder {
+    color: #00ff8844;
+}
+
+.add-btn {
+    padding: 0.8rem 1.5rem;
+    background: transparent;
+    border: 1px solid #00ff88;
+    color: #00ff88;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+}
+
+.add-btn:hover {
+    background: #00ff8822;
+    box-shadow: 0 0 15px #00ff8866;
+}
+
+.task-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.task-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid #00ff8822;
+    transition: all 0.3s ease;
+}
+
+.task-item:last-child {
+    border-bottom: none;
+}
+
+.task-item:hover {
+    background: #00ff8811;
+}
+
+.task-checkbox {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 1px solid #00ff8866;
+    border-radius: 3px;
+    margin-right: 1rem;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+.task-checkbox.checked {
+    background: #00ff8844;
+    border-color: #00ff88;
+}
+
+.task-checkbox.checked::after {
+    content: '✓';
+    position: absolute;
+    color: #00ff88;
+    font-size: 14px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.task-text {
+    flex: 1;
+    color: #00ff88;
+    font-size: 1rem;
+}
+
+.task-text.completed {
+    text-decoration: line-through;
+    color: #00ff8866;
+}
+
+.task-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.task-btn {
+    padding: 0.4rem 0.8rem;
+    background: transparent;
+    border: 1px solid #00ff8844;
+    color: #00ff88;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 3px;
+    text-decoration: none;
+}
+
+.task-btn:hover {
+    background: #00ff8822;
+    box-shadow: 0 0 10px #00ff8844;
+}
+
+.task-btn.delete:hover {
+    border-color: #ff3366;
+    color: #ff3366;
+    background: #ff336622;
+    box-shadow: 0 0 10px #ff336644;
+}
+
+.empty-state {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #00ff8866;
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+}
+
+.system-status {
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.7rem;
+    color: #00ff8866;
+    letter-spacing: 1px;
+    border-top: 1px solid #00ff8822;
+}
+
+.system-status::before {
+    content: '● ';
+    color: #00ff88;
+    animation: blink 2s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="task-container">
+    <div class="task-panel">
+        <div class="task-header">
+            <h1 class="task-title">Задачи_</h1>
+            <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="task-btn">[ Выход ]</button>
+            </form>
+        </div>
+
+        <form method="post" class="task-form">
+            {% csrf_token %}
+            {{ form.title }}
+            <button type="submit" class="add-btn">Добавить</button>
+        </form>
+
+        {% if tasks %}
+            <ul class="task-list">
+                {% for task in tasks %}
+                <li class="task-item">
+                    <a href="{% url 'task:toggle' task.id %}" 
+                       class="task-checkbox {% if task.is_completed %}checked{% endif %}">
+                    </a>
+                    <span class="task-text {% if task.is_completed %}completed{% endif %}">
+                        {{ task.title }}
+                    </span>
+                    <div class="task-actions">
+                        <a href="{% url 'task:toggle' task.id %}" class="task-btn">
+                            {% if task.is_completed %}Вернуть{% else %}Готово{% endif %}
+                        </a>
+                        <a href="{% url 'task:delete' task.id %}" class="task-btn delete">
+                            Удалить
+                        </a>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="empty-state">
+                > Нет активных задач_
+            </div>
+        {% endif %}
+
+        <div class="system-status">
+            СИСТЕМА УПРАВЛЕНИЯ ЗАДАЧАМИ АКТИВНА
+        </div>
+    </div>
+</div>
+{% endblock %}

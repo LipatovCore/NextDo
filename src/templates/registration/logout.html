@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}Выход из системы{% endblock %}
+
+{% block extra_style %}
+    .logout-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+    }
+
+    .logout-panel {
+        background: #1a1a2e;
+        padding: 3rem;
+        border: 1px solid #00ff8844;
+        border-radius: 8px;
+        box-shadow: 0 0 30px #00ff8822;
+        width: 100%;
+        max-width: 400px;
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+    }
+
+    .logout-panel::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #00ff88, transparent);
+        animation: scan 3s linear infinite;
+    }
+
+    @keyframes scan {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(100%); }
+    }
+
+    .logout-title {
+        margin-bottom: 1.5rem;
+        font-size: 1.8rem;
+        text-transform: uppercase;
+        letter-spacing: 6px;
+        color: #00ff88;
+        text-shadow: 0 0 20px #00ff8866;
+    }
+
+    .logout-message {
+        color: #00ff88aa;
+        font-size: 1rem;
+        margin-bottom: 2rem;
+        letter-spacing: 1px;
+    }
+
+    .logout-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .logout-btn {
+        width: 100%;
+        padding: 1rem;
+        background: transparent;
+        border: 1px solid #00ff88;
+        color: #00ff88;
+        font-family: 'Courier New', monospace;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 4px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+
+    .logout-btn:hover {
+        background: #00ff8822;
+        box-shadow: 0 0 20px #00ff8866;
+    }
+
+    .logout-btn.secondary {
+        border-color: #00ff8844;
+        color: #00ff88aa;
+    }
+
+    .logout-btn.secondary:hover {
+        border-color: #00ff88;
+        color: #00ff88;
+    }
+
+    .system-status {
+        text-align: center;
+        margin-top: 1.5rem;
+        font-size: 0.75rem;
+        color: #00ff8866;
+        letter-spacing: 1px;
+    }
+
+    .system-status::before {
+        content: '● ';
+        color: #00ff88;
+        animation: blink 2s infinite;
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+{% endblock %}
+
+{% block content %}
+<div class="logout-container">
+    <div class="logout-panel">
+        <h1 class="logout-title">Выход</h1>
+        <p class="logout-message">Сеанс завершён. До связи_</p>
+
+        <div class="logout-actions">
+            <a href="{% url 'login' %}" class="logout-btn">
+                [ Войти снова ]
+            </a>
+            <a href="{% url 'task:list' %}" class="logout-btn secondary">
+                К задачам
+            </a>
+        </div>
+
+        <div class="system-status">
+            СИСТЕМА БЕЗОПАСНОСТИ АКТИВНА
+        </div>
+    </div>
+</div>
+{% endblock %}
