@@ -1,0 +1,44 @@
+version: '3.8' 
+services:   
+  db:     
+    image: postgres:15
+    volumes:       
+      - postgres_data:/var/lib/postgresql/data     
+    environment:       
+      POSTGRES_DB: nextdo
+      POSTGRES_USER: nextdo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nextdo_password}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nextdo -d nextdo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  web:
+    build: .
+    command: >
+      sh -c "python manage.py migrate &&
+            python manage.py collectstatic --noinput &&
+            gunicorn --bind 0.0.0.0:8000 config.wsgi"
+    volumes:
+      - static_volume:/app/src/staticfiles
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgres://nextdo:${POSTGRES_PASSWORD:-nextdo_password}@db:5432/nextdo
+    depends_on:
+      - db
+    expose:
+      - "8000"
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - static_volume:/app/staticfiles
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
+  static_volume:
