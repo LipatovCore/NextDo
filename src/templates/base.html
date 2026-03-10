@@ -59,6 +59,29 @@
             box-shadow: 0 0 15px #00ff8844;
         }
 
+        .logout-form {
+            display: inline;
+        }
+
+        .logout-btn {
+            color: #00ff88;
+            background: transparent;
+            border: 1px solid #00ff8844;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+        }
+
+        .logout-btn:hover {
+            background: #00ff8822;
+            box-shadow: 0 0 15px #00ff8844;
+        }
+
         .main-content {
             padding: 2rem;
             max-width: 1200px;
@@ -74,7 +97,10 @@
         <nav class="user-menu">
             {% if user.is_authenticated %}
                 <span>[{{ user.username }}]</span>
-                <a href="{% url 'logout' %}">Выход</a>
+                <form method="post" action="{% url 'logout' %}" class="logout-form">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-btn">Выход</button>
+                </form>
             {% else %}
                 <a href="{% url 'login' %}">Вход</a>
             {% endif %}

@@ -9,5 +9,6 @@ class TaskForm(forms.ModelForm):
         widgets = {
             'title': forms.TextInput(attrs={
                 'placeholder': 'Введите задачу...',
+                'size': '60',
             })
         }

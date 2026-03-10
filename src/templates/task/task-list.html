@@ -223,7 +223,10 @@
     <div class="task-panel">
         <div class="task-header">
             <h1 class="task-title">Задачи_</h1>
-            <a href="{% url 'logout' %}" class="task-btn">[ Выход ]</a>
+            <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="task-btn">[ Выход ]</button>
+            </form>
         </div>
 
         <form method="post" class="task-form">
