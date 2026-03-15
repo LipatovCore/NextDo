@@ -132,6 +132,49 @@
         0%, 100% { opacity: 1; }
         50% { opacity: 0.3; }
     }
+
+    @media (max-width: 768px) {
+        .login-container {
+            min-height: auto;
+            align-items: stretch;
+        }
+
+        .login-panel {
+            padding: 2rem 1.25rem;
+            max-width: 100%;
+        }
+
+        .login-title {
+            margin-bottom: 1.5rem;
+            font-size: 1.45rem;
+            letter-spacing: 4px;
+        }
+
+        .form-group input,
+        .login-btn {
+            min-height: 48px;
+            font-size: 16px;
+        }
+
+        .login-btn {
+            letter-spacing: 2px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .login-panel {
+            padding: 1.5rem 1rem;
+        }
+
+        .login-title {
+            font-size: 1.2rem;
+            letter-spacing: 3px;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+    }
 {% endblock %}
 
 {% block content %}

@@ -109,6 +109,50 @@
         0%, 100% { opacity: 1; }
         50% { opacity: 0.3; }
     }
+
+    @media (max-width: 768px) {
+        .logout-container {
+            min-height: auto;
+            align-items: stretch;
+        }
+
+        .logout-panel {
+            padding: 2rem 1.25rem;
+            max-width: 100%;
+        }
+
+        .logout-title {
+            margin-bottom: 1rem;
+            font-size: 1.4rem;
+            letter-spacing: 4px;
+        }
+
+        .logout-message {
+            font-size: 0.95rem;
+        }
+
+        .logout-btn {
+            min-height: 48px;
+            padding: 0.9rem 1rem;
+            font-size: 0.95rem;
+            letter-spacing: 2px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .logout-panel {
+            padding: 1.5rem 1rem;
+        }
+
+        .logout-title {
+            font-size: 1.2rem;
+            letter-spacing: 3px;
+        }
+
+        .system-status {
+            font-size: 0.7rem;
+        }
+    }
 {% endblock %}
 
 {% block content %}
