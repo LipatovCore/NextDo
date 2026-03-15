@@ -56,6 +56,26 @@
     gap: 1rem;
 }
 
+.task-toolbar {
+    padding: 1rem 2rem;
+    border-bottom: 1px solid #00ff8833;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.task-summary {
+    color: #00ff8866;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+}
+
+.task-summary strong {
+    color: #00ff88;
+    font-weight: normal;
+}
+
 .task-input {
     flex: 1 1 auto;
     min-width: 0;
@@ -106,6 +126,10 @@
     margin: 0;
 }
 
+.task-list.hide-completed .task-item.is-completed {
+    display: none;
+}
+
 .task-item {
     display: flex;
     align-items: center;
@@ -127,13 +151,16 @@
     appearance: none;
     width: 20px;
     height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+    flex: 0 0 20px;
     border: 1px solid #00ff8866;
     border-radius: 3px;
     margin-right: 1rem;
     cursor: pointer;
     position: relative;
     transition: all 0.3s ease;
-    display: inline-block;
+    display: block;
 }
 
 .task-checkbox.checked {
@@ -190,6 +217,12 @@
     box-shadow: 0 0 10px #00ff8844;
 }
 
+.task-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
 .task-btn.delete:hover {
     border-color: #ff3366;
     color: #ff3366;
@@ -228,6 +261,7 @@
 @media (max-width: 768px) {
     .task-header,
     .task-form,
+    .task-toolbar,
     .task-item,
     .empty-state {
         padding-left: 1rem;
@@ -247,6 +281,15 @@
 
     .task-form {
         flex-direction: column;
+    }
+
+    .task-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .task-summary {
+        text-align: center;
     }
 
     .task-input,
@@ -287,6 +330,15 @@
         align-items: center;
         justify-content: center;
     }
+
+    #completed-toggle {
+        flex: 0 1 auto;
+        min-height: 40px;
+        padding: 0.5rem 0.9rem;
+        font-size: 0.7rem;
+        letter-spacing: 1px;
+        align-self: center;
+    }
 }
 
 @media (max-width: 480px) {
@@ -314,6 +366,14 @@
         width: 100%;
     }
 
+    #completed-toggle {
+        width: auto;
+        max-width: 100%;
+        min-height: 36px;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.68rem;
+    }
+
     .system-status {
         padding: 0.85rem 1rem;
     }
@@ -325,10 +385,6 @@
     <div class="task-panel">
         <div class="task-header">
             <h1 class="task-title">Задачи_</h1>
-            <form method="post" action="{% url 'logout' %}" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit" class="task-btn">[ Выход ]</button>
-            </form>
         </div>
 
         <form method="post" class="task-form">
@@ -338,9 +394,20 @@
         </form>
 
         {% if tasks %}
-            <ul class="task-list">
+            <div class="task-toolbar">
+                <p class="task-summary">
+                    Активных: <strong id="active-task-count">0</strong> |
+                    Завершённых: <strong id="completed-task-count">0</strong>
+                </p>
+                <button type="button" class="task-btn" id="completed-toggle">
+                    Показать завершённые
+                </button>
+            </div>
+
+            <ul class="task-list hide-completed" id="task-list">
                 {% for task in tasks %}
-                <li class="task-item">
+                <li class="task-item {% if task.is_completed %}is-completed{% endif %}"
+                    data-completed-task="{% if task.is_completed %}true{% else %}false{% endif %}">
                     <a href="{% url 'task:toggle' task.id %}" 
                        class="task-checkbox {% if task.is_completed %}checked{% endif %}">
                     </a>
@@ -358,6 +425,9 @@
                 </li>
                 {% endfor %}
             </ul>
+            <div class="empty-state" id="filtered-empty-state" hidden>
+                > Нет активных задач_
+            </div>
         {% else %}
             <div class="empty-state">
                 > Нет активных задач_
@@ -370,3 +440,53 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_script %}
+<script>
+    (() => {
+        const taskList = document.getElementById('task-list');
+        const toggleButton = document.getElementById('completed-toggle');
+        const filteredEmptyState = document.getElementById('filtered-empty-state');
+        const activeTaskCount = document.getElementById('active-task-count');
+        const completedTaskCount = document.getElementById('completed-task-count');
+
+        if (!taskList || !toggleButton) {
+            return;
+        }
+
+        const taskItems = Array.from(taskList.querySelectorAll('[data-completed-task]'));
+
+        const updateTaskVisibility = () => {
+            const completedItems = taskItems.filter((item) => item.dataset.completedTask === 'true');
+            const activeItems = taskItems.filter((item) => item.dataset.completedTask !== 'true');
+            const isHidingCompleted = taskList.classList.contains('hide-completed');
+
+            if (activeTaskCount) {
+                activeTaskCount.textContent = String(activeItems.length);
+            }
+
+            if (completedTaskCount) {
+                completedTaskCount.textContent = String(completedItems.length);
+            }
+
+            toggleButton.textContent = isHidingCompleted
+                ? 'Показать завершённые'
+                : 'Скрыть завершённые';
+            toggleButton.disabled = completedItems.length === 0;
+            toggleButton.setAttribute('aria-pressed', String(!isHidingCompleted));
+
+            if (filteredEmptyState) {
+                filteredEmptyState.hidden = !(isHidingCompleted && activeItems.length === 0);
+            }
+        };
+
+        toggleButton.addEventListener('click', () => {
+            taskList.classList.toggle('hide-completed');
+            updateTaskVisibility();
+        });
+
+        updateTaskVisibility();
+    })();
+</script>
+{% endblock %}
+
