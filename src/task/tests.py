@@ -135,6 +135,18 @@ class TaskListViewTest(TestCase):
         response = self.client.get(self.url)
         self.assertIn('form', response.context)
 
+    def test_completed_tasks_toggle_present_and_hidden_by_default(self):
+        """На странице есть переключатель завершённых задач и они скрыты по умолчанию"""
+        Task.objects.create(title='Active Task', user=self.user)
+        Task.objects.create(title='Completed Task', user=self.user, is_completed=True)
+
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(self.url)
+
+        self.assertContains(response, 'id="completed-toggle"', html=False)
+        self.assertContains(response, 'class="task-list hide-completed"', html=False)
+        self.assertContains(response, 'data-completed-task="true"', html=False)
+
 
 # =============================================================================
 # VIEW ТЕСТЫ - ПЕРЕКЛЮЧЕНИЕ ЗАДАЧИ
