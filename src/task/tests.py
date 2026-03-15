@@ -203,7 +203,7 @@ class TaskToggleViewTest(TestCase):
         self.client.login(username='testuser', password='testpass123')
         response = self.client.get(url)
 
-        self.assertEqual(response.status_code, 404)
+        self.assertRedirects(response, reverse('task:list'))
 
 
 # =============================================================================
@@ -248,4 +248,4 @@ class TaskDeleteViewTest(TestCase):
         self.client.login(username='testuser', password='testpass123')
         response = self.client.get(url)
 
-        self.assertEqual(response.status_code, 404)
+        self.assertRedirects(response, reverse('task:list'))
