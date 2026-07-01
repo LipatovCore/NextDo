@@ -8,10 +8,18 @@
 - `web` — сборка из локального `Dockerfile`.
 - `nginx` — `nginx:alpine`, порт `80:80`.
 
+Для всех сервисов задано `restart: unless-stopped`: контейнеры перезапускаются после сбоя и после перезагрузки сервера, если Docker daemon запущен и контейнеры не были остановлены вручную.
+
 Команда запуска:
 
 ```bash
 docker compose up --build
+```
+
+На сервере включите Docker в автозагрузку:
+
+```bash
+sudo systemctl enable docker
 ```
 
 ## Web container

@@ -94,6 +94,3 @@ class TaskDetailsForm(forms.ModelForm):
         if commit:
             task.save()
         return task
-
-
-TaskForm = TaskQuickCreateForm

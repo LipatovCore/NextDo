@@ -1,10 +1,10 @@
-version: '3.8' 
-services:   
-  db:     
+services:
+  db:
     image: postgres:15
-    volumes:       
-      - postgres_data:/var/lib/postgresql/data     
-    environment:       
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
       POSTGRES_DB: nextdo
       POSTGRES_USER: nextdo
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nextdo_password}
@@ -15,6 +15,7 @@ services:
       retries: 5
   web:
     build: .
+    restart: unless-stopped
     command: >
       sh -c "python manage.py migrate &&
             python manage.py collectstatic --noinput &&
@@ -23,14 +24,13 @@ services:
       - static_volume:/app/src/staticfiles
     env_file:
       - .env
-    environment:
-      - DATABASE_URL=postgres://nextdo:${POSTGRES_PASSWORD:-nextdo_password}@db:5432/nextdo
     depends_on:
       - db
     expose:
       - "8000"
   nginx:
     image: nginx:alpine
+    restart: unless-stopped
     ports:
       - "80:80"
     volumes:

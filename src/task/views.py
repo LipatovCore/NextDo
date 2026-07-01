@@ -42,7 +42,7 @@ def _task_filters(query_params):
     if status not in {'active', 'completed'}:
         status = ''
 
-    priority_values = {value for value, label in Task.PRIORITY_CHOICES}
+    priority_values = {value for value, _ in Task.PRIORITY_CHOICES}
     if priority not in priority_values:
         priority = ''
 
@@ -78,9 +78,7 @@ def _apply_task_filters(tasks, filters):
 
 def _today_tasks(tasks, today):
     return tasks.filter(
-        Q(scheduled_date=today)
-        | Q(deadline__lt=today)
-        | Q(scheduled_date__lt=today)
+        Q(scheduled_date__lte=today) | Q(deadline__lt=today)
     ).distinct()
 
 
@@ -242,23 +240,20 @@ def update_task_today(request, task_id):
 def task_detail(request, task_id):
     """Полная карточка задачи."""
     task = get_object_or_404(_visible_tasks(request.user), id=task_id)
+    context = {
+        'task': task,
+        'detail_form': TaskDetailsForm(instance=task),
+        'today': timezone.localdate(),
+    }
     html = render_to_string(
         'task/partials/_task_detail.html',
-        {
-            'task': task,
-            'detail_form': TaskDetailsForm(instance=task),
-            'today': timezone.localdate(),
-        },
+        context,
         request=request,
     )
 
     if _is_fetch_request(request):
         return JsonResponse({'ok': True, 'html': html})
-    return render(request, 'task/partials/_task_detail.html', {
-        'task': task,
-        'detail_form': TaskDetailsForm(instance=task),
-        'today': timezone.localdate(),
-    })
+    return render(request, 'task/partials/_task_detail.html', context)
 
 
 @login_required

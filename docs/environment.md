@@ -20,16 +20,6 @@
 | `POSTGRES_HOST` | host БД | `db` |
 | `POSTGRES_PORT` | порт БД | `5432` |
 
-## Docker Compose
-
-`docker-compose.yml` дополнительно задает:
-
-```text
-DATABASE_URL=postgres://nextdo:${POSTGRES_PASSWORD:-nextdo_password}@db:5432/nextdo
-```
-
-В текущем `src/config/settings.py` `DATABASE_URL` не читается; подключение к PostgreSQL идет через `POSTGRES_*`.
-
 ## Секреты
 
 - Не коммитьте `.env`.
