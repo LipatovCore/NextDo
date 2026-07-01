@@ -1,0 +1,100 @@
+<div class="detail-card" data-detail-card>
+    <header class="detail-card__header">
+        <div>
+            <p class="tasks-kicker">Карточка задачи</p>
+            <h2>{{ task.title }}</h2>
+        </div>
+        <button type="button" class="task-button" data-modal-close>Закрыть</button>
+    </header>
+
+    <form method="post"
+          action="{% url 'task:edit' task.id %}"
+          class="detail-form"
+          data-detail-form>
+        {% csrf_token %}
+
+        {% if detail_form.non_field_errors %}
+            <div class="form-error">{{ detail_form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <div class="detail-grid">
+            <label class="field-label wide">
+                {{ detail_form.title.label }}
+                {{ detail_form.title }}
+                {% if detail_form.title.errors %}
+                    <span class="form-error">{{ detail_form.title.errors.0 }}</span>
+                {% endif %}
+            </label>
+
+            <label class="field-label">
+                {{ detail_form.status.label }}
+                {{ detail_form.status }}
+                {% if detail_form.status.errors %}
+                    <span class="form-error">{{ detail_form.status.errors.0 }}</span>
+                {% endif %}
+            </label>
+
+            <label class="field-label">
+                {{ detail_form.priority.label }}
+                {{ detail_form.priority }}
+                {% if detail_form.priority.errors %}
+                    <span class="form-error">{{ detail_form.priority.errors.0 }}</span>
+                {% endif %}
+            </label>
+
+            <label class="field-label">
+                {{ detail_form.deadline.label }}
+                {{ detail_form.deadline }}
+                {% if detail_form.deadline.errors %}
+                    <span class="form-error">{{ detail_form.deadline.errors.0 }}</span>
+                {% endif %}
+            </label>
+
+            <label class="field-label">
+                {{ detail_form.scheduled_date.label }}
+                {{ detail_form.scheduled_date }}
+                {% if detail_form.scheduled_date.errors %}
+                    <span class="form-error">{{ detail_form.scheduled_date.errors.0 }}</span>
+                {% endif %}
+            </label>
+
+            <label class="field-label wide">
+                {{ detail_form.description.label }}
+                {{ detail_form.description }}
+                {% if detail_form.description.errors %}
+                    <span class="form-error">{{ detail_form.description.errors.0 }}</span>
+                {% endif %}
+            </label>
+        </div>
+
+        <div class="detail-actions">
+            <button type="submit" class="task-button primary">Сохранить</button>
+            <button type="button" class="task-button" data-modal-close>Отмена</button>
+        </div>
+    </form>
+
+    <div class="detail-actions">
+        <div class="detail-actions__group">
+            <form method="post"
+                  action="{% url 'task:today' task.id %}"
+                  data-ajax-form>
+                {% csrf_token %}
+                {% if task.scheduled_date and task.scheduled_date <= today %}
+                    <input type="hidden" name="mode" value="remove">
+                    <button type="submit" class="task-button today-active">Убрать из сегодня</button>
+                {% else %}
+                    <input type="hidden" name="mode" value="add">
+                    <button type="submit" class="task-button">Добавить в сегодня</button>
+                {% endif %}
+            </form>
+        </div>
+
+        <form method="post"
+              action="{% url 'task:delete' task.id %}"
+              data-ajax-form
+              data-delete-form>
+            {% csrf_token %}
+            <button type="submit" class="task-button danger">Удалить задачу</button>
+        </form>
+    </div>
+</div>

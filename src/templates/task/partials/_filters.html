@@ -1,0 +1,32 @@
+<form method="get" action="{% url 'task:list' %}" class="task-filters" data-filter-form>
+    <label class="filter-field">
+        <span class="field-label">Статус</span>
+        <select name="status" class="task-field">
+            <option value="">Любой</option>
+            <option value="active" {% if filters.status == 'active' %}selected{% endif %}>Активная</option>
+            <option value="completed" {% if filters.status == 'completed' %}selected{% endif %}>Завершена</option>
+        </select>
+    </label>
+
+    <label class="filter-field">
+        <span class="field-label">Приоритет</span>
+        <select name="priority" class="task-field">
+            <option value="">Любой</option>
+            {% for value, label in priority_choices %}
+                <option value="{{ value }}" {% if filters.priority == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label class="filter-field">
+        <span class="field-label">Дедлайн</span>
+        <input type="date" name="deadline" class="task-field" value="{{ filters.deadline|date:'Y-m-d' }}">
+    </label>
+
+    <label class="filter-field">
+        <span class="field-label">Дата выполнения</span>
+        <input type="date" name="scheduled_date" class="task-field" value="{{ filters.scheduled_date|date:'Y-m-d' }}">
+    </label>
+
+    <button type="button" class="task-button" data-reset-filters>Сбросить</button>
+</form>

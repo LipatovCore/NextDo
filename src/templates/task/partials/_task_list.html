@@ -1,0 +1,32 @@
+<div class="task-list-shell" data-list-kind="{{ list_kind }}">
+    <div class="task-list-meta">
+        {% if list_kind == 'today' %}
+            <span>Сегодня и просроченные</span>
+            <span>{{ today_tasks_count }} шт.</span>
+        {% else %}
+            <span>{% if filters_active %}Отфильтрованный список{% else %}Все неудалённые задачи{% endif %}</span>
+            <span>{{ filtered_tasks_count }} шт.</span>
+        {% endif %}
+    </div>
+
+    {% if list_tasks %}
+        <div class="task-card-list">
+            {% for task in list_tasks %}
+                {% include 'task/partials/_task_card.html' with task=task %}
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            {% if list_kind == 'today' %}
+                <strong>На сегодня задач нет</strong>
+                <span>Здесь появятся задачи с сегодняшней датой выполнения и просрочки.</span>
+            {% elif filters_active %}
+                <strong>Ничего не найдено</strong>
+                <span>Попробуйте изменить фильтры или сбросить их.</span>
+            {% else %}
+                <strong>Задач пока нет</strong>
+                <span>Добавьте первую задачу через поле быстрого создания.</span>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>

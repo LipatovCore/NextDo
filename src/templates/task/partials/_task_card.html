@@ -1,0 +1,85 @@
+<article class="task-card {% if task.is_completed %}is-completed{% endif %} {% if task.is_overdue %}is-overdue{% endif %}"
+         data-task-card="{{ task.id }}"
+         data-status="{{ task.status_value }}"
+         data-priority="{{ task.priority }}"
+         data-deadline="{{ task.deadline|date:'Y-m-d' }}"
+         data-scheduled-date="{{ task.scheduled_date|date:'Y-m-d' }}">
+    <div class="task-card__main">
+        <button type="button"
+                class="task-card__title"
+                data-detail-url="{% url 'task:detail' task.id %}">
+            {{ task.title }}
+        </button>
+
+        <div class="task-card__meta">
+            <span class="meta-pill">{{ task.status_label }}</span>
+            <span class="meta-pill">Приоритет: {{ task.get_priority_display }}</span>
+            <span class="meta-pill">
+                Дедлайн:
+                {% if task.deadline %}
+                    {{ task.deadline|date:'d.m.Y' }}
+                {% else %}
+                    не задан
+                {% endif %}
+            </span>
+            <span class="meta-pill">
+                Дата выполнения:
+                {% if task.scheduled_date %}
+                    {{ task.scheduled_date|date:'d.m.Y' }}
+                {% else %}
+                    не задана
+                {% endif %}
+            </span>
+        </div>
+
+        <div class="task-card__badges" aria-label="Состояния задачи">
+            {% if task.scheduled_date == today %}
+                <span class="task-badge today">Сегодня</span>
+            {% endif %}
+            {% if task.is_deadline_overdue %}
+                <span class="task-badge overdue">Просрочен дедлайн</span>
+            {% endif %}
+            {% if task.is_scheduled_overdue %}
+                <span class="task-badge overdue">Просрочена дата выполнения</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="task-card__actions">
+        <form method="post"
+              action="{% url 'task:status' task.id %}"
+              class="status-form"
+              data-status-form>
+            {% csrf_token %}
+            <label>
+                <span class="visually-hidden">Изменить статус</span>
+                <select name="status" class="task-field status-select">
+                    <option value="active" {% if not task.is_completed %}selected{% endif %}>Активная</option>
+                    <option value="completed" {% if task.is_completed %}selected{% endif %}>Завершена</option>
+                </select>
+            </label>
+            <button type="submit" class="visually-hidden">Сохранить статус</button>
+        </form>
+
+        <form method="post"
+              action="{% url 'task:today' task.id %}"
+              data-ajax-form>
+            {% csrf_token %}
+            {% if task.scheduled_date and task.scheduled_date <= today %}
+                <input type="hidden" name="mode" value="remove">
+                <button type="submit" class="task-button today-active">Убрать из сегодня</button>
+            {% else %}
+                <input type="hidden" name="mode" value="add">
+                <button type="submit" class="task-button">В сегодня</button>
+            {% endif %}
+        </form>
+
+        <form method="post"
+              action="{% url 'task:delete' task.id %}"
+              data-ajax-form
+              data-delete-form>
+            {% csrf_token %}
+            <button type="submit" class="task-button danger">Удалить</button>
+        </form>
+    </div>
+</article>

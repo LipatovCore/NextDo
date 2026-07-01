@@ -1,0 +1,11 @@
+<form method="post" action="{% url 'task:list' %}" class="quick-create" data-quick-create-form>
+    {% csrf_token %}
+    <label class="quick-create__field">
+        <span class="visually-hidden">Название новой задачи</span>
+        {{ quick_form.title }}
+    </label>
+    <button type="submit" class="task-button primary">Добавить</button>
+    {% if quick_form.title.errors %}
+        <span class="form-error">{{ quick_form.title.errors.0 }}</span>
+    {% endif %}
+</form>
