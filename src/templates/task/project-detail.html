@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Задачи{% endblock %}
+{% block title %}{{ project.title }}{% endblock %}
 
 {% block extra_style %}
 body {
@@ -101,13 +101,10 @@ body {
 }
 
 .tasks-panel {
+    overflow: hidden;
     background: #ffffff;
     border: 1px solid #d8e0ec;
     border-radius: 8px;
-}
-
-.tasks-panel {
-    overflow: hidden;
 }
 
 .tasks-header {
@@ -129,6 +126,7 @@ body {
     color: #17202a;
     font-size: 1.7rem;
     letter-spacing: 0;
+    overflow-wrap: anywhere;
 }
 
 .task-stats {
@@ -158,28 +156,12 @@ body {
     font-size: 0.78rem;
 }
 
-.secondary-tabs {
-    display: flex;
-    gap: 8px;
-    padding: 14px 24px;
-    border-bottom: 1px solid #e1e7f0;
-    background: #f8fafd;
-}
-
-.secondary-tab {
-    min-height: 38px;
-    padding: 0 14px;
-}
-
-.secondary-tab:hover,
-.secondary-tab.is-active {
-    border-color: #b8c8e8;
-    background: #ffffff;
-    color: #184fd6;
-}
-
 .task-view {
     padding: 24px;
+}
+
+.task-view + .task-view {
+    border-top: 1px solid #e1e7f0;
 }
 
 .task-view__header {
@@ -216,7 +198,8 @@ body {
 }
 
 .quick-create,
-.task-filters {
+.task-filters,
+.project-edit {
     margin-bottom: 18px;
     padding: 16px;
     border: 1px solid #dbe4ef;
@@ -261,6 +244,9 @@ body {
 }
 
 .task-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     min-height: 40px;
     padding: 0 14px;
     border-color: #c8d3e2;
@@ -319,6 +305,28 @@ body {
 .form-error {
     color: #a3362b;
     font-size: 0.82rem;
+}
+
+.project-progress {
+    min-width: 220px;
+    display: grid;
+    gap: 8px;
+    color: #68778e;
+    font-size: 0.78rem;
+}
+
+.progress-track {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #dbe4ef;
+}
+
+.progress-bar {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #1f5eff;
 }
 
 .task-list-shell {
@@ -597,10 +605,6 @@ body {
         padding: 16px;
     }
 
-    .secondary-tabs {
-        padding: 12px 16px;
-    }
-
     .task-feedback {
         margin: 12px 16px 0;
     }
@@ -621,7 +625,8 @@ body {
     .task-card__actions > *,
     .task-button,
     .quick-create__project,
-    .status-form {
+    .status-form,
+    .project-progress {
         width: 100%;
     }
 
@@ -632,57 +637,87 @@ body {
 {% endblock %}
 
 {% block content %}
-<div class="task-workspace" data-task-app>
+<div class="task-workspace" data-task-app data-project-id="{{ project.id }}">
     <div class="app-shell">
         <nav class="primary-nav" aria-label="Главное меню">
             <a href="{% url 'home' %}" class="primary-nav__item">Главная</a>
-            <a href="{% url 'task:list' %}" class="primary-nav__item is-active" aria-current="page">Задачи</a>
-            <a href="{% url 'projects' %}" class="primary-nav__item">Проекты</a>
+            <a href="{% url 'task:list' %}" class="primary-nav__item">Задачи</a>
+            <a href="{% url 'projects' %}" class="primary-nav__item is-active" aria-current="page">Проекты</a>
             <a href="{% url 'finance' %}" class="primary-nav__item">Финансы</a>
         </nav>
 
         <section class="workspace-panel tasks-panel">
             <header class="tasks-header">
                 <div>
-                    <p class="tasks-kicker">Рабочий список</p>
-                    <h1 class="tasks-title">Задачи</h1>
+                    <p class="tasks-kicker">Проект до {{ project.deadline|date:'d.m.Y' }}</p>
+                    <h1 class="tasks-title">{{ project.title }}</h1>
                 </div>
-                <div class="task-stats" aria-label="Сводка задач">
+                <div class="task-stats" aria-label="Сводка проекта">
                     <div class="task-stat">
-                        <span class="task-stat__value" data-count="all">{{ filtered_tasks_count }}</span>
-                        <span class="task-stat__label">в списке</span>
+                        <span class="task-stat__value" data-project-stat="total">{{ project_stats.total }}</span>
+                        <span class="task-stat__label">задач всего</span>
                     </div>
                     <div class="task-stat">
-                        <span class="task-stat__value" data-count="today">{{ today_tasks_count }}</span>
-                        <span class="task-stat__label">на сегодня</span>
+                        <span class="task-stat__value" data-project-stat="completed">{{ project_stats.completed }}</span>
+                        <span class="task-stat__label">выполнено</span>
+                    </div>
+                    <div class="task-stat project-progress">
+                        <span><strong data-project-stat="progress">{{ project_stats.progress }}%</strong> готово</span>
+                        <span class="progress-track" aria-hidden="true">
+                            <span class="progress-bar" data-project-progress-bar style="width: {{ project_stats.progress }}%;"></span>
+                        </span>
                     </div>
                 </div>
             </header>
 
-            <nav class="secondary-tabs" aria-label="Разделы задач">
-                <button type="button" class="secondary-tab" data-view-button="today">Сегодня</button>
-                <button type="button" class="secondary-tab is-active" data-view-button="all">Все задачи</button>
-            </nav>
-
             <div class="task-feedback" data-feedback hidden></div>
 
-            <section class="task-view" data-view-panel="today" hidden>
+            <section class="task-view">
                 <div class="task-view__header">
                     <div>
-                        <h2>Сегодня</h2>
-                        <p>Задачи на текущий день и всё, что стало просроченным.</p>
+                        <h2>Данные проекта</h2>
+                        <p>Название и дедлайн проекта.</p>
                     </div>
                 </div>
-                <div data-list-slot="today">
-                    {% include 'task/partials/_task_list.html' with list_kind='today' list_tasks=today_tasks %}
-                </div>
+
+                <form method="post"
+                      action="{% url 'project_detail' project.id %}"
+                      class="project-edit detail-form">
+                    {% csrf_token %}
+
+                    {% if project_form.non_field_errors %}
+                        <div class="form-error">{{ project_form.non_field_errors.0 }}</div>
+                    {% endif %}
+
+                    <div class="detail-grid">
+                        <label class="field-label">
+                            {{ project_form.title.label }}
+                            {{ project_form.title }}
+                            {% if project_form.title.errors %}
+                                <span class="form-error">{{ project_form.title.errors.0 }}</span>
+                            {% endif %}
+                        </label>
+                        <label class="field-label">
+                            {{ project_form.deadline.label }}
+                            {{ project_form.deadline }}
+                            {% if project_form.deadline.errors %}
+                                <span class="form-error">{{ project_form.deadline.errors.0 }}</span>
+                            {% endif %}
+                        </label>
+                    </div>
+
+                    <div class="detail-actions">
+                        <button type="submit" class="task-button primary">Сохранить</button>
+                        <a href="{% url 'projects' %}" class="task-button">К проектам</a>
+                    </div>
+                </form>
             </section>
 
-            <section class="task-view" data-view-panel="all">
+            <section class="task-view">
                 <div class="task-view__header">
                     <div>
-                        <h2>Все задачи</h2>
-                        <p>Быстро добавляйте, фильтруйте и обновляйте задачи без перезагрузки страницы.</p>
+                        <h2>Задачи проекта</h2>
+                        <p>Список построен из задач, связанных с этим проектом.</p>
                     </div>
                 </div>
 
@@ -690,11 +725,10 @@ body {
                 {% include 'task/partials/_filters.html' %}
 
                 <div data-list-slot="all">
-                    {% include 'task/partials/_task_list.html' with list_kind='all' list_tasks=tasks %}
+                    {% include 'task/partials/_task_list.html' with list_kind='project' list_tasks=tasks %}
                 </div>
             </section>
         </section>
-
     </div>
 
     <div class="task-modal" data-modal hidden>
@@ -743,17 +777,13 @@ body {
 
         const activeFilterParams = (includeProject = false) => {
             const params = new URLSearchParams();
-            if (!filterForm) {
-                if (includeProject && app.dataset.projectId) {
-                    params.set('project', app.dataset.projectId);
-                }
-                return params;
-            }
-            const formData = new FormData(filterForm);
-            for (const [key, value] of formData.entries()) {
-                const trimmed = String(value).trim();
-                if (trimmed) {
-                    params.set(key, trimmed);
+            if (filterForm) {
+                const formData = new FormData(filterForm);
+                for (const [key, value] of formData.entries()) {
+                    const trimmed = String(value).trim();
+                    if (trimmed) {
+                        params.set(key, trimmed);
+                    }
                 }
             }
             if (includeProject && app.dataset.projectId) {
@@ -894,18 +924,6 @@ body {
         };
 
         app.addEventListener('click', (event) => {
-            const viewButton = event.target.closest('[data-view-button]');
-            if (viewButton) {
-                const view = viewButton.dataset.viewButton;
-                app.querySelectorAll('[data-view-button]').forEach((button) => {
-                    button.classList.toggle('is-active', button === viewButton);
-                });
-                app.querySelectorAll('[data-view-panel]').forEach((panel) => {
-                    panel.hidden = panel.dataset.viewPanel !== view;
-                });
-                return;
-            }
-
             const resetButton = event.target.closest('[data-reset-filters]');
             if (resetButton && filterForm) {
                 filterForm.querySelectorAll('input, select').forEach((field) => {
@@ -961,6 +979,10 @@ body {
                 submitAjaxForm(form, 'Задача создана.')
                     .then(() => {
                         form.reset();
+                        const projectSelect = form.querySelector('[name="project"]');
+                        if (projectSelect && app.dataset.projectId) {
+                            projectSelect.value = app.dataset.projectId;
+                        }
                         if (titleInput) {
                             titleInput.focus();
                         }

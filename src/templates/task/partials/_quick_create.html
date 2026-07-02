@@ -1,11 +1,18 @@
-<form method="post" action="{% url 'task:list' %}" class="quick-create" data-quick-create-form>
+<form method="post" action="{{ quick_create_action }}" class="quick-create" data-quick-create-form>
     {% csrf_token %}
     <label class="quick-create__field">
         <span class="visually-hidden">Название новой задачи</span>
         {{ quick_form.title }}
     </label>
+    <label class="quick-create__project">
+        <span class="visually-hidden">{{ quick_form.project.label }}</span>
+        {{ quick_form.project }}
+    </label>
     <button type="submit" class="task-button primary">Добавить</button>
     {% if quick_form.title.errors %}
         <span class="form-error">{{ quick_form.title.errors.0 }}</span>
+    {% endif %}
+    {% if quick_form.project.errors %}
+        <span class="form-error">{{ quick_form.project.errors.0 }}</span>
     {% endif %}
 </form>

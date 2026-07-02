@@ -8,7 +8,7 @@
     </header>
 
     <form method="post"
-          action="{% url 'task:edit' task.id %}"
+          action="{% url 'task:edit' task.id %}{{ task_action_query }}"
           class="detail-form"
           data-detail-form>
         {% csrf_token %}
@@ -31,6 +31,14 @@
                 {{ detail_form.status }}
                 {% if detail_form.status.errors %}
                     <span class="form-error">{{ detail_form.status.errors.0 }}</span>
+                {% endif %}
+            </label>
+
+            <label class="field-label">
+                {{ detail_form.project.label }}
+                {{ detail_form.project }}
+                {% if detail_form.project.errors %}
+                    <span class="form-error">{{ detail_form.project.errors.0 }}</span>
                 {% endif %}
             </label>
 
@@ -76,7 +84,7 @@
     <div class="detail-actions">
         <div class="detail-actions__group">
             <form method="post"
-                  action="{% url 'task:today' task.id %}"
+                  action="{% url 'task:today' task.id %}{{ task_action_query }}"
                   data-ajax-form>
                 {% csrf_token %}
                 {% if task.scheduled_date and task.scheduled_date <= today %}
@@ -90,7 +98,7 @@
         </div>
 
         <form method="post"
-              action="{% url 'task:delete' task.id %}"
+              action="{% url 'task:delete' task.id %}{{ task_action_query }}"
               data-ajax-form
               data-delete-form>
             {% csrf_token %}

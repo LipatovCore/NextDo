@@ -2,17 +2,26 @@
          data-task-card="{{ task.id }}"
          data-status="{{ task.status_value }}"
          data-priority="{{ task.priority }}"
+         data-project="{{ task.project_id|default:'' }}"
          data-deadline="{{ task.deadline|date:'Y-m-d' }}"
          data-scheduled-date="{{ task.scheduled_date|date:'Y-m-d' }}">
     <div class="task-card__main">
         <button type="button"
                 class="task-card__title"
-                data-detail-url="{% url 'task:detail' task.id %}">
+                data-detail-url="{% url 'task:detail' task.id %}{{ task_action_query }}">
             {{ task.title }}
         </button>
 
         <div class="task-card__meta">
             <span class="meta-pill">{{ task.status_label }}</span>
+            <span class="meta-pill">
+                Проект:
+                {% if task.project %}
+                    {{ task.project.title }}
+                {% else %}
+                    Без проекта
+                {% endif %}
+            </span>
             <span class="meta-pill">Приоритет: {{ task.get_priority_display }}</span>
             <span class="meta-pill">
                 Дедлайн:
@@ -47,7 +56,7 @@
 
     <div class="task-card__actions">
         <form method="post"
-              action="{% url 'task:status' task.id %}"
+              action="{% url 'task:status' task.id %}{{ task_action_query }}"
               class="status-form"
               data-status-form>
             {% csrf_token %}
@@ -62,7 +71,7 @@
         </form>
 
         <form method="post"
-              action="{% url 'task:today' task.id %}"
+              action="{% url 'task:today' task.id %}{{ task_action_query }}"
               data-ajax-form>
             {% csrf_token %}
             {% if task.scheduled_date and task.scheduled_date <= today %}
@@ -75,7 +84,7 @@
         </form>
 
         <form method="post"
-              action="{% url 'task:delete' task.id %}"
+              action="{% url 'task:delete' task.id %}{{ task_action_query }}"
               data-ajax-form
               data-delete-form>
             {% csrf_token %}

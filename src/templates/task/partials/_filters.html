@@ -1,4 +1,4 @@
-<form method="get" action="{% url 'task:list' %}" class="task-filters" data-filter-form>
+<form method="get" action="{{ filter_action }}" class="task-filters" data-filter-form>
     <label class="filter-field">
         <span class="field-label">Статус</span>
         <select name="status" class="task-field">

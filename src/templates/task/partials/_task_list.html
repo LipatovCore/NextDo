@@ -3,6 +3,9 @@
         {% if list_kind == 'today' %}
             <span>Сегодня и просроченные</span>
             <span>{{ today_tasks_count }} шт.</span>
+        {% elif list_kind == 'project' %}
+            <span>{% if filters_active %}Отфильтрованные задачи проекта{% else %}Задачи проекта{% endif %}</span>
+            <span>{{ filtered_tasks_count }} шт.</span>
         {% else %}
             <span>{% if filters_active %}Отфильтрованный список{% else %}Все неудалённые задачи{% endif %}</span>
             <span>{{ filtered_tasks_count }} шт.</span>
@@ -20,6 +23,12 @@
             {% if list_kind == 'today' %}
                 <strong>На сегодня задач нет</strong>
                 <span>Здесь появятся задачи с сегодняшней датой выполнения и просрочки.</span>
+            {% elif list_kind == 'project' and filters_active %}
+                <strong>Ничего не найдено</strong>
+                <span>Попробуйте изменить фильтры или сбросить их.</span>
+            {% elif list_kind == 'project' %}
+                <strong>В проекте пока нет задач</strong>
+                <span>Добавьте задачу и выберите этот проект в карточке создания.</span>
             {% elif filters_active %}
                 <strong>Ничего не найдено</strong>
                 <span>Попробуйте изменить фильтры или сбросить их.</span>

@@ -3,6 +3,42 @@ from django.db import models
 from django.utils import timezone
 
 
+class Project(models.Model):
+    title = models.CharField(max_length=100)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='projects'
+    )
+    deadline = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    @property
+    def visible_tasks(self):
+        return self.tasks.filter(is_deleted=False)
+
+    @property
+    def task_total_count(self):
+        return self.visible_tasks.count()
+
+    @property
+    def completed_task_count(self):
+        return self.visible_tasks.filter(is_completed=True).count()
+
+    @property
+    def progress_percent(self):
+        total = self.task_total_count
+        if not total:
+            return 0
+        return round(self.completed_task_count * 100 / total)
+
+    def __str__(self):
+        return self.title
+
+
 class Task(models.Model):
     PRIORITY_LOW = 'low'
     PRIORITY_MEDIUM = 'medium'
@@ -19,6 +55,13 @@ class Task(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='tasks'
+    )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.SET_NULL,
+        related_name='tasks',
+        null=True,
+        blank=True,
     )
     is_completed = models.BooleanField(default=False)
     priority = models.CharField(

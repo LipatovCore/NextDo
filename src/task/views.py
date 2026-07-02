@@ -1,15 +1,16 @@
 from datetime import date
 
-from django.db.models import Q
+from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from django.contrib.auth.decorators import login_required
 
-from .forms import TaskDetailsForm, TaskQuickCreateForm
-from .models import Task
+from .forms import ProjectForm, TaskDetailsForm, TaskQuickCreateForm
+from .models import Project, Task
 
 
 def redirect_to_task(request, exception=None):
@@ -20,8 +21,66 @@ def _is_fetch_request(request):
     return request.headers.get('x-requested-with') == 'XMLHttpRequest'
 
 
+def _visible_projects(user):
+    return Project.objects.filter(user=user)
+
+
 def _visible_tasks(user):
-    return Task.objects.filter(user=user, is_deleted=False)
+    return Task.objects.select_related('project').filter(user=user, is_deleted=False)
+
+
+def _project_context_from_request(request):
+    project_id = request.GET.get('project', '').strip()
+    if not project_id:
+        return None
+
+    try:
+        project_id = int(project_id)
+    except ValueError:
+        return None
+
+    return _visible_projects(request.user).filter(id=project_id).first()
+
+
+def _context_redirect(request):
+    project = _project_context_from_request(request)
+    if project:
+        return redirect('project_detail', project_id=project.id)
+    return redirect('task:list')
+
+
+def _project_stats(project):
+    tasks = project.tasks.filter(is_deleted=False)
+    total = tasks.count()
+    completed = tasks.filter(is_completed=True).count()
+    progress = round(completed * 100 / total) if total else 0
+    return {
+        'total': total,
+        'completed': completed,
+        'progress': progress,
+    }
+
+
+def _projects_with_stats(user):
+    projects = list(
+        _visible_projects(user).annotate(
+            stats_total=Count(
+                'tasks',
+                filter=Q(tasks__is_deleted=False),
+            ),
+            stats_completed=Count(
+                'tasks',
+                filter=Q(tasks__is_deleted=False, tasks__is_completed=True),
+            ),
+        )
+    )
+    for project in projects:
+        project.stats_progress = (
+            round(project.stats_completed * 100 / project.stats_total)
+            if project.stats_total
+            else 0
+        )
+    return projects
 
 
 def _parse_date(value):
@@ -82,15 +141,32 @@ def _today_tasks(tasks, today):
     ).distinct()
 
 
-def _task_context(request, quick_form=None):
+def _task_context(request, quick_form=None, project=None):
     today = timezone.localdate()
     base_tasks = _visible_tasks(request.user)
+    if project is not None:
+        base_tasks = base_tasks.filter(project=project)
+
     filters = _task_filters(request.GET)
     filtered_tasks = _apply_task_filters(base_tasks, filters)
     today_tasks = _today_tasks(base_tasks, today)
 
+    if quick_form is None:
+        quick_form_kwargs = {'user': request.user}
+        if project is not None:
+            quick_form_kwargs['initial'] = {'project': project}
+        quick_form = TaskQuickCreateForm(**quick_form_kwargs)
+
+    quick_create_action = reverse('task:list')
+    filter_action = reverse('task:list')
+    if project is not None:
+        quick_create_action = f'{quick_create_action}?project={project.id}'
+        filter_action = reverse('project_detail', kwargs={'project_id': project.id})
+
     return {
-        'quick_form': quick_form or TaskQuickCreateForm(),
+        'quick_form': quick_form,
+        'quick_create_action': quick_create_action,
+        'filter_action': filter_action,
         'tasks': filtered_tasks,
         'today_tasks': today_tasks,
         'all_tasks_count': base_tasks.count(),
@@ -99,6 +175,8 @@ def _task_context(request, quick_form=None):
         'filters': filters,
         'filters_active': _filters_are_active(filters),
         'priority_choices': Task.PRIORITY_CHOICES,
+        'project_context': project,
+        'task_action_query': f'?project={project.id}' if project is not None else '',
         'today': today,
     }
 
@@ -116,22 +194,29 @@ def _render_task_list(request, context, list_kind):
     )
 
 
-def _lists_payload(request, message=''):
-    context = _task_context(request)
-    return {
+def _lists_payload(request, message='', project=None):
+    if project is None:
+        project = _project_context_from_request(request)
+
+    context = _task_context(request, project=project)
+    list_kind = 'project' if project is not None else 'all'
+    payload = {
         'ok': True,
         'message': message,
-        'all_html': _render_task_list(request, context, 'all'),
+        'all_html': _render_task_list(request, context, list_kind),
         'today_html': _render_task_list(request, context, 'today'),
         'counts': {
             'all': context['filtered_tasks_count'],
             'today': context['today_tasks_count'],
         },
     }
+    if project is not None:
+        payload['project_stats'] = _project_stats(project)
+    return payload
 
 
-def _json_lists_response(request, message=''):
-    return JsonResponse(_lists_payload(request, message=message))
+def _json_lists_response(request, message='', project=None):
+    return JsonResponse(_lists_payload(request, message=message, project=project))
 
 
 def _first_form_error(form):
@@ -160,14 +245,14 @@ def _json_error(message, status=400):
 def task_list(request):
     """Вывод списка задач и создание новой."""
     if request.method == 'POST':
-        form = TaskQuickCreateForm(request.POST)
+        form = TaskQuickCreateForm(request.POST, user=request.user)
         if form.is_valid():
             task = form.save(commit=False)
             task.user = request.user
             task.save()
             if _is_fetch_request(request):
                 return _json_lists_response(request, 'Задача создана.')
-            return redirect('task:list')
+            return _context_redirect(request)
 
         if _is_fetch_request(request):
             return _json_form_error(form)
@@ -183,6 +268,53 @@ def task_list(request):
 
 
 @login_required
+def project_list(request):
+    """Список проектов и создание нового проекта."""
+    if request.method == 'POST':
+        form = ProjectForm(request.POST)
+        if form.is_valid():
+            project = form.save(commit=False)
+            project.user = request.user
+            project.save()
+            return redirect('project_detail', project_id=project.id)
+    else:
+        form = ProjectForm()
+
+    context = {
+        'project_form': form,
+        'projects': _projects_with_stats(request.user),
+        'projects_count': _visible_projects(request.user).count(),
+    }
+    return render(request, 'task/project-list.html', context)
+
+
+@login_required
+def project_detail(request, project_id):
+    """Редактирование проекта и список его задач."""
+    project = get_object_or_404(_visible_projects(request.user), id=project_id)
+
+    if request.method == 'POST':
+        project_form = ProjectForm(request.POST, instance=project)
+        if project_form.is_valid():
+            project_form.save()
+            return redirect('project_detail', project_id=project.id)
+    else:
+        project_form = ProjectForm(instance=project)
+
+    if _is_fetch_request(request) and request.method == 'GET':
+        return _json_lists_response(request, project=project)
+
+    task_context = _task_context(request, project=project)
+    context = {
+        **task_context,
+        'project': project,
+        'project_form': project_form,
+        'project_stats': _project_stats(project),
+    }
+    return render(request, 'task/project-detail.html', context)
+
+
+@login_required
 def toggle_task(request, task_id):
     """Переключение статуса задачи."""
     task = get_object_or_404(_visible_tasks(request.user), id=task_id)
@@ -191,7 +323,7 @@ def toggle_task(request, task_id):
 
     if _is_fetch_request(request):
         return _json_lists_response(request, 'Статус обновлён.')
-    return redirect('task:list')
+    return _context_redirect(request)
 
 
 @login_required
@@ -204,14 +336,14 @@ def update_task_status(request, task_id):
     if status not in {'active', 'completed'}:
         if _is_fetch_request(request):
             return _json_error('Неизвестный статус задачи.')
-        return redirect('task:list')
+        return _context_redirect(request)
 
     task.is_completed = status == 'completed'
     task.save(update_fields=['is_completed'])
 
     if _is_fetch_request(request):
         return _json_lists_response(request, 'Статус обновлён.')
-    return redirect('task:list')
+    return _context_redirect(request)
 
 
 @login_required
@@ -233,16 +365,19 @@ def update_task_today(request, task_id):
 
     if _is_fetch_request(request):
         return _json_lists_response(request, message)
-    return redirect('task:list')
+    return _context_redirect(request)
 
 
 @login_required
 def task_detail(request, task_id):
     """Полная карточка задачи."""
     task = get_object_or_404(_visible_tasks(request.user), id=task_id)
+    project_context = _project_context_from_request(request)
     context = {
         'task': task,
-        'detail_form': TaskDetailsForm(instance=task),
+        'detail_form': TaskDetailsForm(instance=task, user=request.user),
+        'project_context': project_context,
+        'task_action_query': f'?project={project_context.id}' if project_context else '',
         'today': timezone.localdate(),
     }
     html = render_to_string(
@@ -261,20 +396,23 @@ def task_detail(request, task_id):
 def edit_task(request, task_id):
     """Сохранение полной карточки задачи."""
     task = get_object_or_404(_visible_tasks(request.user), id=task_id)
-    form = TaskDetailsForm(request.POST, instance=task)
+    form = TaskDetailsForm(request.POST, instance=task, user=request.user)
 
     if form.is_valid():
         form.save()
         if _is_fetch_request(request):
             return _json_lists_response(request, 'Задача сохранена.')
-        return redirect('task:list')
+        return _context_redirect(request)
 
     if _is_fetch_request(request):
+        project_context = _project_context_from_request(request)
         html = render_to_string(
             'task/partials/_task_detail.html',
             {
                 'task': task,
                 'detail_form': form,
+                'project_context': project_context,
+                'task_action_query': f'?project={project_context.id}' if project_context else '',
                 'today': timezone.localdate(),
             },
             request=request,
@@ -301,4 +439,4 @@ def delete_task(request, task_id):
 
     if _is_fetch_request(request):
         return _json_lists_response(request, 'Задача удалена из списка.')
-    return redirect('task:list')
+    return _context_redirect(request)
