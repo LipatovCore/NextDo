@@ -83,6 +83,8 @@ body {
 }
 
 .primary-nav__item {
+    display: flex;
+    align-items: center;
     min-height: 42px;
     padding: 0 12px;
     text-align: left;
@@ -98,18 +100,10 @@ body {
     min-width: 0;
 }
 
-.placeholder-panel,
 .tasks-panel {
     background: #ffffff;
     border: 1px solid #d8e0ec;
     border-radius: 8px;
-}
-
-.placeholder-panel {
-    min-height: 360px;
-    display: grid;
-    place-items: center;
-    color: #637087;
 }
 
 .tasks-panel {
@@ -570,6 +564,7 @@ body {
 
     .primary-nav__item {
         flex: 1 0 140px;
+        justify-content: center;
         text-align: center;
     }
 
@@ -634,16 +629,12 @@ body {
 <div class="task-workspace" data-task-app>
     <div class="app-shell">
         <nav class="primary-nav" aria-label="Главное меню">
-            <button type="button" class="primary-nav__item" data-section-button="home">Главное</button>
-            <button type="button" class="primary-nav__item is-active" data-section-button="tasks">Задачи</button>
-            <button type="button" class="primary-nav__item" data-section-button="finance">Финансы</button>
+            <a href="{% url 'home' %}" class="primary-nav__item">Главная</a>
+            <a href="{% url 'task:list' %}" class="primary-nav__item is-active" aria-current="page">Задачи</a>
+            <a href="{% url 'finance' %}" class="primary-nav__item">Финансы</a>
         </nav>
 
-        <section class="workspace-panel placeholder-panel" data-section-panel="home" hidden>
-            <strong>Раздел в разработке</strong>
-        </section>
-
-        <section class="workspace-panel tasks-panel" data-section-panel="tasks">
+        <section class="workspace-panel tasks-panel">
             <header class="tasks-header">
                 <div>
                     <p class="tasks-kicker">Рабочий список</p>
@@ -697,9 +688,6 @@ body {
             </section>
         </section>
 
-        <section class="workspace-panel placeholder-panel" data-section-panel="finance" hidden>
-            <strong>Раздел в разработке</strong>
-        </section>
     </div>
 
     <div class="task-modal" data-modal hidden>
@@ -871,18 +859,6 @@ body {
         };
 
         app.addEventListener('click', (event) => {
-            const sectionButton = event.target.closest('[data-section-button]');
-            if (sectionButton) {
-                const section = sectionButton.dataset.sectionButton;
-                app.querySelectorAll('[data-section-button]').forEach((button) => {
-                    button.classList.toggle('is-active', button === sectionButton);
-                });
-                app.querySelectorAll('[data-section-panel]').forEach((panel) => {
-                    panel.hidden = panel.dataset.sectionPanel !== section;
-                });
-                return;
-            }
-
             const viewButton = event.target.closest('[data-view-button]');
             if (viewButton) {
                 const view = viewButton.dataset.viewButton;

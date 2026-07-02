@@ -13,7 +13,7 @@ from .models import Task
 
 
 def redirect_to_task(request, exception=None):
-    return redirect('/tasks/')
+    return redirect('home')
 
 
 def _is_fetch_request(request):

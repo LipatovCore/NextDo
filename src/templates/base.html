@@ -29,6 +29,7 @@
         }
 
         .logo {
+            text-decoration: none;
             font-size: 1.5rem;
             font-weight: bold;
             text-transform: uppercase;
@@ -144,7 +145,7 @@
 </head>
 <body>
     <header class="header">
-        <div class="logo">NextDo_</div>
+        <a href="{% url 'home' %}" class="logo">NextDo_</a>
         <nav class="user-menu">
             {% if user.is_authenticated %}
                 <span>[{{ user.username }}]</span>

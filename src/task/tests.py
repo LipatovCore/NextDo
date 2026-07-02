@@ -103,6 +103,10 @@ class TaskListViewTest(TestCase):
         )
         self.url = reverse('task:list')
 
+    def test_task_list_route_is_tasks_section(self):
+        """Экран задач смонтирован в отдельном разделе /tasks/."""
+        self.assertEqual(self.url, '/tasks/')
+
     def test_redirect_anonymous_user(self):
         """Анонимный пользователь перенаправляется на страницу входа."""
         response = self.client.get(self.url)
@@ -160,16 +164,19 @@ class TaskListViewTest(TestCase):
         self.assertIn('quick_form', response.context)
 
     def test_main_and_secondary_menus_present(self):
-        """На странице есть главное меню и вкладки задач."""
+        """На странице задач есть навигация и вкладки задач."""
         self.client.login(username='testuser', password='testpass123')
         response = self.client.get(self.url)
 
-        self.assertContains(response, 'Главное')
+        self.assertContains(response, 'Главная')
         self.assertContains(response, 'Задачи')
         self.assertContains(response, 'Финансы')
         self.assertContains(response, 'Сегодня')
         self.assertContains(response, 'Все задачи')
-        self.assertContains(response, 'Раздел в разработке')
+        self.assertContains(response, 'href="/"')
+        self.assertContains(response, 'href="/tasks/"')
+        self.assertContains(response, 'href="/finance/"')
+        self.assertNotContains(response, 'Раздел в разработке')
 
     def test_filter_by_status(self):
         """Фильтр по статусу."""
@@ -299,6 +306,70 @@ class TaskListViewTest(TestCase):
         self.assertFalse(task.is_scheduled_overdue)
 
 
+class HomeViewTest(TestCase):
+    """Тесты отдельной главной страницы."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+        self.url = reverse('home')
+
+    def test_home_route_is_root(self):
+        """Главная страница смонтирована на корневой маршрут."""
+        self.assertEqual(self.url, '/')
+
+    def test_redirect_anonymous_user(self):
+        """Анонимный пользователь перенаправляется на страницу входа."""
+        response = self.client.get(self.url)
+        self.assertRedirects(response, f'/login/?next={self.url}')
+
+    def test_authenticated_user_access(self):
+        """Авторизованный пользователь получает отдельную главную страницу."""
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'home/home.html')
+        self.assertContains(response, 'Главная')
+        self.assertContains(response, 'Задачи')
+        self.assertContains(response, 'Финансы')
+        self.assertContains(response, 'Раздел в разработке')
+        self.assertContains(response, 'href="/tasks/"')
+        self.assertContains(response, 'href="/finance/"')
+        self.assertNotContains(response, 'Все задачи')
+        self.assertNotContains(response, 'Задач пока нет')
+
+
+class FinanceViewTest(TestCase):
+    """Тесты отдельного раздела финансов."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+        self.url = reverse('finance')
+
+    def test_redirect_anonymous_user(self):
+        """Анонимный пользователь перенаправляется на страницу входа."""
+        response = self.client.get(self.url)
+        self.assertRedirects(response, f'/login/?next={self.url}')
+
+    def test_authenticated_user_access(self):
+        """Авторизованный пользователь получает доступ к разделу финансов."""
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'finance/finance.html')
+        self.assertContains(response, 'Финансы')
+        self.assertContains(response, 'Раздел в разработке')
+        self.assertContains(response, 'href="/"')
+        self.assertContains(response, 'href="/tasks/"')
+
+
 class TaskToggleViewTest(TestCase):
     """Тесты для переключения задачи."""
 
@@ -348,7 +419,7 @@ class TaskToggleViewTest(TestCase):
         self.client.login(username='testuser', password='testpass123')
         response = self.client.get(url)
 
-        self.assertRedirects(response, reverse('task:list'))
+        self.assertRedirects(response, reverse('home'))
 
 
 class TaskAjaxEndpointTest(TestCase):
@@ -520,5 +591,5 @@ class TaskDeleteViewTest(TestCase):
         self.client.login(username='testuser', password='testpass123')
         response = self.client.post(url)
 
-        self.assertRedirects(response, reverse('task:list'))
+        self.assertRedirects(response, reverse('home'))
         self.assertFalse(Task.objects.get(id=other_task.id).is_deleted)
