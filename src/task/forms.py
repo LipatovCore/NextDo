@@ -55,7 +55,10 @@ class TaskQuickCreateForm(forms.ModelForm):
         self.fields["project"].required = False
         self.fields["project"].empty_label = "Без проекта"
         if user is not None:
-            self.fields["project"].queryset = Project.objects.filter(user=user)
+            self.fields["project"].queryset = Project.objects.filter(
+                user=user,
+                is_deleted=False,
+            )
         else:
             self.fields["project"].queryset = Project.objects.none()
 
@@ -128,7 +131,10 @@ class TaskDetailsForm(forms.ModelForm):
         self.fields["project"].required = False
         self.fields["project"].empty_label = "Без проекта"
         if user is not None:
-            self.fields["project"].queryset = Project.objects.filter(user=user)
+            self.fields["project"].queryset = Project.objects.filter(
+                user=user,
+                is_deleted=False,
+            )
         else:
             self.fields["project"].queryset = Project.objects.none()
         if self.instance and self.instance.pk:

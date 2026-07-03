@@ -100,16 +100,15 @@ class ProjectModelTest(TestCase):
         )
 
     def test_create_project(self):
-        today = timezone.localdate()
         project = Project.objects.create(
             title='Project One',
             user=self.user,
-            deadline=today,
         )
 
         self.assertEqual(str(project), 'Project One')
         self.assertEqual(project.user, self.user)
-        self.assertEqual(project.deadline, today)
+        self.assertIsNone(project.deadline)
+        self.assertFalse(project.is_deleted)
         self.assertIsNotNone(project.created_at)
 
     def test_task_project_relation_is_optional(self):
@@ -250,6 +249,23 @@ class TaskListViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Task.objects.filter(title='Wrong Project Task').exists())
 
+    def test_create_task_rejects_deleted_project(self):
+        """POST не может привязать задачу к мягко удалённому проекту."""
+        deleted_project = Project.objects.create(
+            title='Deleted Project',
+            user=self.user,
+            is_deleted=True,
+        )
+
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.post(
+            self.url,
+            {'title': 'Deleted Project Task', 'project': deleted_project.id},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Task.objects.filter(title='Deleted Project Task').exists())
+
     def test_create_task_invalid_form(self):
         """Создание задачи с невалидной формой."""
         self.client.login(username='testuser', password='testpass123')
@@ -352,6 +368,26 @@ class TaskListViewTest(TestCase):
         self.assertContains(response, 'Visible Project')
         self.assertContains(response, 'Проект:')
         self.assertContains(response, 'Сегодня')
+
+    def test_task_card_hides_deleted_project_name(self):
+        """Карточка задачи не показывает мягко удалённый проект как активный."""
+        deleted_project = Project.objects.create(
+            title='Hidden Project',
+            user=self.user,
+            is_deleted=True,
+        )
+        Task.objects.create(
+            title='Task With Hidden Link',
+            user=self.user,
+            project=deleted_project,
+        )
+
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(self.url)
+
+        self.assertContains(response, 'Task With Hidden Link')
+        self.assertContains(response, 'Без проекта')
+        self.assertNotContains(response, 'Hidden Project')
 
     def test_combined_filters(self):
         """Несколько фильтров работают одновременно."""
@@ -466,20 +502,19 @@ class ProjectViewTest(TestCase):
         self.assertContains(response, 'href="/projects/"')
 
     def test_create_project_success_trims_title(self):
-        """Создание проекта обрезает лишние пробелы и открывает карточку проекта."""
-        today = timezone.localdate()
+        """Создание проекта требует только название и открывает карточку проекта."""
 
         self.client.login(username='testuser', password='testpass123')
         response = self.client.post(
             self.url,
             {
                 'title': '  Work Project  ',
-                'deadline': today.isoformat(),
             },
         )
 
         project = Project.objects.get(title='Work Project', user=self.user)
         self.assertRedirects(response, reverse('project_detail', args=[project.id]))
+        self.assertIsNone(project.deadline)
 
     def test_create_project_invalid_form(self):
         """Проект без названия не создаётся."""
@@ -488,7 +523,6 @@ class ProjectViewTest(TestCase):
             self.url,
             {
                 'title': '   ',
-                'deadline': timezone.localdate().isoformat(),
             },
         )
 
@@ -496,7 +530,7 @@ class ProjectViewTest(TestCase):
         self.assertFalse(Project.objects.filter(user=self.user).exists())
 
     def test_display_only_user_projects(self):
-        """Пользователь видит только свои проекты."""
+        """Пользователь видит только свои неудалённые проекты."""
         my_project = Project.objects.create(
             title='My Project',
             user=self.user,
@@ -507,12 +541,18 @@ class ProjectViewTest(TestCase):
             user=self.other_user,
             deadline=timezone.localdate(),
         )
+        Project.objects.create(
+            title='Deleted Project',
+            user=self.user,
+            is_deleted=True,
+        )
 
         self.client.login(username='testuser', password='testpass123')
         response = self.client.get(self.url)
 
         self.assertContains(response, my_project.title)
         self.assertNotContains(response, 'Other Project')
+        self.assertNotContains(response, 'Deleted Project')
 
     def test_project_card_displays_stats_and_progress(self):
         """Карточка проекта показывает статистику задач и прогресс."""
@@ -542,6 +582,19 @@ class ProjectViewTest(TestCase):
         self.assertContains(response, 'Всего: 2')
         self.assertContains(response, 'Готово: 1')
         self.assertContains(response, '50%')
+
+    def test_project_card_displays_empty_deadline(self):
+        """Карточка проекта показывает, что дедлайн не задан."""
+        Project.objects.create(
+            title='No Deadline Project',
+            user=self.user,
+        )
+
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(self.url)
+
+        self.assertContains(response, 'No Deadline Project')
+        self.assertContains(response, 'не задан')
 
     def test_project_detail_displays_project_tasks_only(self):
         """Страница проекта показывает только задачи выбранного проекта."""
@@ -599,6 +652,78 @@ class ProjectViewTest(TestCase):
         project.refresh_from_db()
         self.assertEqual(project.title, 'New Title')
         self.assertEqual(project.deadline, new_deadline)
+
+    def test_project_detail_can_clear_deadline(self):
+        """Дедлайн проекта можно оставить пустым при редактировании."""
+        project = Project.objects.create(
+            title='Project With Deadline',
+            user=self.user,
+            deadline=timezone.localdate(),
+        )
+
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.post(
+            reverse('project_detail', args=[project.id]),
+            {
+                'title': 'Project With Deadline',
+                'deadline': '',
+            },
+        )
+
+        self.assertRedirects(response, reverse('project_detail', args=[project.id]))
+        project.refresh_from_db()
+        self.assertIsNone(project.deadline)
+
+    def test_delete_project_is_soft_delete(self):
+        """Удаление проекта только помечает его удалённым."""
+        project = Project.objects.create(
+            title='Project To Delete',
+            user=self.user,
+        )
+        task = Task.objects.create(
+            title='Linked Task',
+            user=self.user,
+            project=project,
+        )
+
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.post(reverse('project_delete', args=[project.id]))
+
+        self.assertRedirects(response, reverse('projects'))
+        project.refresh_from_db()
+        task.refresh_from_db()
+        self.assertTrue(project.is_deleted)
+        self.assertEqual(task.project, project)
+
+        list_response = self.client.get(reverse('projects'))
+        self.assertNotContains(list_response, 'Project To Delete')
+
+    def test_deleted_project_detail_is_not_available(self):
+        """Мягко удалённый проект не открывается в рабочем интерфейсе."""
+        project = Project.objects.create(
+            title='Deleted Project',
+            user=self.user,
+            is_deleted=True,
+        )
+
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('project_detail', args=[project.id]))
+
+        self.assertRedirects(response, reverse('home'))
+
+    def test_delete_project_rejects_other_user_project(self):
+        """Пользователь не может удалить чужой проект."""
+        other_project = Project.objects.create(
+            title='Other Project',
+            user=self.other_user,
+        )
+
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.post(reverse('project_delete', args=[other_project.id]))
+
+        self.assertRedirects(response, reverse('home'))
+        other_project.refresh_from_db()
+        self.assertFalse(other_project.is_deleted)
 
     def test_project_detail_filter_by_status(self):
         """Фильтры на странице проекта применяются только к задачам проекта."""

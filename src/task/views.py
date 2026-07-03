@@ -22,7 +22,7 @@ def _is_fetch_request(request):
 
 
 def _visible_projects(user):
-    return Project.objects.filter(user=user)
+    return Project.objects.filter(user=user, is_deleted=False)
 
 
 def _visible_tasks(user):
@@ -312,6 +312,16 @@ def project_detail(request, project_id):
         'project_stats': _project_stats(project),
     }
     return render(request, 'task/project-detail.html', context)
+
+
+@login_required
+@require_POST
+def delete_project(request, project_id):
+    """Мягкое удаление проекта без удаления связанных задач."""
+    project = get_object_or_404(_visible_projects(request.user), id=project_id)
+    project.is_deleted = True
+    project.save(update_fields=['is_deleted'])
+    return redirect('projects')
 
 
 @login_required

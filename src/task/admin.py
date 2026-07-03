@@ -9,9 +9,10 @@ class ProjectAdmin(admin.ModelAdmin):
         'title',
         'user',
         'deadline',
+        'is_deleted',
         'created_at',
     )
-    list_filter = ('deadline', 'created_at')
+    list_filter = ('is_deleted', 'deadline', 'created_at')
     search_fields = ('title', 'user__username')
 
 

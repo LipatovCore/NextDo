@@ -16,7 +16,7 @@
             <span class="meta-pill">{{ task.status_label }}</span>
             <span class="meta-pill">
                 Проект:
-                {% if task.project %}
+                {% if task.project and not task.project.is_deleted %}
                     {{ task.project.title }}
                 {% else %}
                     Без проекта

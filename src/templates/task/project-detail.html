@@ -649,7 +649,13 @@ body {
         <section class="workspace-panel tasks-panel">
             <header class="tasks-header">
                 <div>
-                    <p class="tasks-kicker">Проект до {{ project.deadline|date:'d.m.Y' }}</p>
+                    <p class="tasks-kicker">
+                        {% if project.deadline %}
+                            Проект до {{ project.deadline|date:'d.m.Y' }}
+                        {% else %}
+                            Проект без дедлайна
+                        {% endif %}
+                    </p>
                     <h1 class="tasks-title">{{ project.title }}</h1>
                 </div>
                 <div class="task-stats" aria-label="Сводка проекта">
@@ -676,7 +682,7 @@ body {
                 <div class="task-view__header">
                     <div>
                         <h2>Данные проекта</h2>
-                        <p>Название и дедлайн проекта.</p>
+                        <p>Название проекта и необязательный дедлайн.</p>
                     </div>
                 </div>
 
@@ -708,9 +714,18 @@ body {
 
                     <div class="detail-actions">
                         <button type="submit" class="task-button primary">Сохранить</button>
-                        <a href="{% url 'projects' %}" class="task-button">К проектам</a>
+                        <div class="detail-actions__group">
+                            <a href="{% url 'projects' %}" class="task-button">К проектам</a>
+                        </div>
                     </div>
                 </form>
+
+                <div class="detail-actions">
+                    <form method="post" action="{% url 'project_delete' project.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="task-button danger">Удалить проект</button>
+                    </form>
+                </div>
             </section>
 
             <section class="task-view">

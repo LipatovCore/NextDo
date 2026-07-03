@@ -392,7 +392,7 @@ body {
                 <div class="task-view__header">
                     <div>
                         <h2>Новый проект</h2>
-                        <p>Создайте проект с дедлайном, а задачи привяжите в карточке задачи.</p>
+                        <p>Создайте проект, а дедлайн при необходимости добавьте сразу или позже.</p>
                     </div>
                 </div>
 
@@ -424,7 +424,14 @@ body {
                                     <h2 class="project-card__title">{{ project.title }}</h2>
                                 </div>
                                 <div class="project-card__meta">
-                                    <span class="meta-pill">Дедлайн: {{ project.deadline|date:'d.m.Y' }}</span>
+                                    <span class="meta-pill">
+                                        Дедлайн:
+                                        {% if project.deadline %}
+                                            {{ project.deadline|date:'d.m.Y' }}
+                                        {% else %}
+                                            не задан
+                                        {% endif %}
+                                    </span>
                                 </div>
                                 <div class="project-card__stats">
                                     <span class="meta-pill">Всего: {{ project.stats_total }}</span>

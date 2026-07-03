@@ -18,6 +18,7 @@ urlpatterns = [
     path('tasks/', include('task.urls')),
     path('projects/', task_views.project_list, name='projects'),
     path('projects/<int:project_id>/', task_views.project_detail, name='project_detail'),
+    path('projects/<int:project_id>/delete/', task_views.delete_project, name='project_delete'),
     path(
         'finance/',
         login_required(TemplateView.as_view(template_name='finance/finance.html')),
